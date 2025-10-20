@@ -9,7 +9,7 @@ app.get('/me', async (req, res) => {
   res.json({
     status: "success",
     user: {
-      email: "danielsolomongs888@gmail@example.com",
+      email: "danielsolomongs888@gmail.com",
       name: "Solomon Daniel Buyikunmi",
       stack: "Node.js/Express"
     },
