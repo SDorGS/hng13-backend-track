@@ -1,0 +1,16 @@
+{
+  "name": "hng13-backend-track",
+  "version": "1.0.0",
+  "description": "HNG13 Backend Track - Cat Facts API Integration (Node.js/Express)",
+  "main": "stage-0/Backend_Service_Dynamic_Profile_API_Express_NodeJS_Get_Me_Endpoint_CatFacts_API_Integration_JSON_Response_ISO8601_Timestamp_ErrorHandling_BestPractices.py",
+  "scripts": {
+    "start": "node stage-0/Backend_Service_Dynamic_Profile_API_Express_NodeJS_Get_Me_Endpoint_CatFacts_API_Integration_JSON_Response_ISO8601_Timestamp_ErrorHandling_BestPractices.py"
+  },
+  "dependencies": {
+    "express": "^4.19.0",
+    "node-fetch": "^2.6.12"
+  },
+  "engines": {
+    "node": ">=14"
+  }
+}
