@@ -26,8 +26,8 @@ const analyze = (str) => {
   };
 };
 
-// POST /api/strings
-app.post('/api/strings', (req, res) => {
+// POST /strings
+app.post('/strings', (req, res) => {
   const { value } = req.body;
 
   if (value === undefined)
@@ -50,16 +50,16 @@ app.post('/api/strings', (req, res) => {
   return res.status(201).json(data);
 });
 
-// GET /api/strings/:value
-app.get('/api/strings/:value', (req, res) => {
+// GET /strings/:value
+app.get('/strings/:value', (req, res) => {
   const h = crypto.createHash('sha256').update(req.params.value).digest('hex');
   if (!db.has(h))
     return res.status(404).json({ error: 'String not found' });
   res.status(200).json(db.get(h));
 });
 
-// GET /api/strings (filters)
-app.get('/api/strings', (req, res) => {
+// GET /strings
+app.get('/strings', (req, res) => {
   let data = Array.from(db.values());
   const f = req.query;
   const filters_applied = {};
@@ -102,8 +102,8 @@ app.get('/api/strings', (req, res) => {
   }
 });
 
-// GET /api/strings/filter-by-natural-language
-app.get('/api/strings/filter-by-natural-language', (req, res) => {
+// GET /strings/filter-by-natural-language
+app.get('/strings/filter-by-natural-language', (req, res) => {
   const q = req.query.query;
   if (!q) return res.status(400).json({ error: 'Missing query parameter' });
 
@@ -135,18 +135,15 @@ app.get('/api/strings/filter-by-natural-language', (req, res) => {
   });
 });
 
-// DELETE /api/strings/:value
-app.delete('/api/strings/:value', (req, res) => {
+// DELETE /strings/:value
+app.delete('/strings/:value', (req, res) => {
   const h = crypto.createHash('sha256').update(req.params.value).digest('hex');
   if (!db.has(h)) return res.status(404).json({ error: 'String not found' });
   db.delete(h);
   res.status(204).send();
 });
 
-// health check (optional)
-app.get('/', (req, res) => {
-  res.json({ status: 'ok' });
-});
+app.get('/', (req, res) => res.json({ status: 'ok' }));
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on ${PORT}`));
