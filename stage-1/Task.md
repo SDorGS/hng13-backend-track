@@ -3,8 +3,6 @@
 Welcome to Stage 1! :dart:  
 Build a RESTful API service that analyzes strings and stores their computed properties.
 
-## Explainer video
-
 ## What it should do
 For each analyzed string, compute and store the following properties:
 
