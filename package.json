@@ -2,7 +2,7 @@
   "name": "hng13-backend-track",
   "version": "1.0.0",
   "description": "HNG13 Backend Track - Cat Facts API Integration (Node.js/Express)",
-  "main": "stage-0/me_endpoint.js",
+  "main": "stage-1/server.js",
   "scripts": {
     "start": "node stage-0/me_endpoint.js"
   },
