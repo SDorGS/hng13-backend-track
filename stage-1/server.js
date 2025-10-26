@@ -1,11 +1,13 @@
 const express = require('express');
 const crypto = require('crypto');
-const app = express();
 
+const app = express();
 app.use(express.json());
 
+// In-memory database
 const db = new Map();
 
+// Helper function to analyze strings
 const analyze = (str) => {
   const length = str.length;
   const norm = str.toLowerCase();
@@ -14,7 +16,10 @@ const analyze = (str) => {
   const word_count = str.trim().split(/\s+/).filter(Boolean).length;
   const sha256_hash = crypto.createHash('sha256').update(str).digest('hex');
   const character_frequency_map = {};
-  for (const c of str) character_frequency_map[c] = (character_frequency_map[c] || 0) + 1;
+
+  for (const c of str) {
+    character_frequency_map[c] = (character_frequency_map[c] || 0) + 1;
+  }
 
   return {
     length,
@@ -26,7 +31,15 @@ const analyze = (str) => {
   };
 };
 
-// POST /strings
+// ✅ Root route — required for health checks
+app.get('/', (req, res) => {
+  res.json({
+    status: 'ok',
+    message: 'String Analyzer API is running 🚀',
+  });
+});
+
+// ✅ POST /strings
 app.post('/strings', (req, res) => {
   const { value } = req.body;
 
@@ -36,8 +49,9 @@ app.post('/strings', (req, res) => {
     return res.status(422).json({ error: "'value' must be a string" });
 
   const props = analyze(value);
+
   if (db.has(props.sha256_hash))
-    return res.status(409).json({ error: "String already exists" });
+    return res.status(409).json({ error: 'String already exists' });
 
   const data = {
     id: props.sha256_hash,
@@ -47,49 +61,55 @@ app.post('/strings', (req, res) => {
   };
 
   db.set(props.sha256_hash, data);
-  return res.status(201).json(data);
+  res.status(201).json(data);
 });
 
-// GET /strings/:value
+// ✅ GET /strings/:value
 app.get('/strings/:value', (req, res) => {
-  const h = crypto.createHash('sha256').update(req.params.value).digest('hex');
-  if (!db.has(h))
+  const hash = crypto.createHash('sha256').update(req.params.value).digest('hex');
+
+  if (!db.has(hash))
     return res.status(404).json({ error: 'String not found' });
-  res.status(200).json(db.get(h));
+
+  res.status(200).json(db.get(hash));
 });
 
-// GET /strings
+// ✅ GET /strings (with filters)
 app.get('/strings', (req, res) => {
   let data = Array.from(db.values());
-  const f = req.query;
+  const filters = req.query;
   const filters_applied = {};
 
   try {
-    if (f.is_palindrome !== undefined) {
-      const b = f.is_palindrome === 'true';
-      data = data.filter(d => d.properties.is_palindrome === b);
-      filters_applied.is_palindrome = b;
+    if (filters.is_palindrome !== undefined) {
+      const boolVal = filters.is_palindrome === 'true';
+      data = data.filter(d => d.properties.is_palindrome === boolVal);
+      filters_applied.is_palindrome = boolVal;
     }
-    if (f.min_length) {
-      const n = parseInt(f.min_length);
+
+    if (filters.min_length) {
+      const n = parseInt(filters.min_length);
       if (isNaN(n)) return res.status(400).json({ error: 'Invalid min_length' });
       data = data.filter(d => d.properties.length >= n);
       filters_applied.min_length = n;
     }
-    if (f.max_length) {
-      const n = parseInt(f.max_length);
+
+    if (filters.max_length) {
+      const n = parseInt(filters.max_length);
       if (isNaN(n)) return res.status(400).json({ error: 'Invalid max_length' });
       data = data.filter(d => d.properties.length <= n);
       filters_applied.max_length = n;
     }
-    if (f.word_count) {
-      const n = parseInt(f.word_count);
+
+    if (filters.word_count) {
+      const n = parseInt(filters.word_count);
       if (isNaN(n)) return res.status(400).json({ error: 'Invalid word_count' });
       data = data.filter(d => d.properties.word_count === n);
       filters_applied.word_count = n;
     }
-    if (f.contains_character) {
-      const c = f.contains_character;
+
+    if (filters.contains_character) {
+      const c = filters.contains_character;
       if (typeof c !== 'string' || c.length !== 1)
         return res.status(400).json({ error: 'contains_character must be a single character' });
       data = data.filter(d => d.value.includes(c));
@@ -97,23 +117,30 @@ app.get('/strings', (req, res) => {
     }
 
     res.status(200).json({ data, count: data.length, filters_applied });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
-// GET /strings/filter-by-natural-language
+// ✅ GET /strings/filter-by-natural-language
 app.get('/strings/filter-by-natural-language', (req, res) => {
   const q = req.query.query;
   if (!q) return res.status(400).json({ error: 'Missing query parameter' });
 
   const lq = q.toLowerCase();
   const parsed = {};
+
   if (lq.includes('palindromic')) parsed.is_palindrome = true;
   if (lq.includes('single word')) parsed.word_count = 1;
-  if (lq.match(/longer than (\d+)/)) parsed.min_length = parseInt(lq.match(/longer than (\d+)/)[1]);
-  if (lq.match(/containing the letter ([a-z])/)) parsed.contains_character = lq.match(/containing the letter ([a-z])/)[1];
-  if (lq.match(/contain the first vowel/)) parsed.contains_character = 'a';
+
+  const longerMatch = lq.match(/longer than (\d+)/);
+  if (longerMatch) parsed.min_length = parseInt(longerMatch[1]);
+
+  const letterMatch = lq.match(/containing the letter ([a-z])/);
+  if (letterMatch) parsed.contains_character = letterMatch[1];
+
+  if (lq.includes('contain the first vowel'))
+    parsed.contains_character = 'a';
 
   if (Object.keys(parsed).length === 0)
     return res.status(400).json({ error: 'Unable to parse natural language query' });
@@ -135,15 +162,16 @@ app.get('/strings/filter-by-natural-language', (req, res) => {
   });
 });
 
-// DELETE /strings/:value
+// ✅ DELETE /strings/:value
 app.delete('/strings/:value', (req, res) => {
-  const h = crypto.createHash('sha256').update(req.params.value).digest('hex');
-  if (!db.has(h)) return res.status(404).json({ error: 'String not found' });
-  db.delete(h);
+  const hash = crypto.createHash('sha256').update(req.params.value).digest('hex');
+  if (!db.has(hash))
+    return res.status(404).json({ error: 'String not found' });
+
+  db.delete(hash);
   res.status(204).send();
 });
 
-app.get('/', (req, res) => res.json({ status: 'ok' }));
-
+// ✅ Start server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
